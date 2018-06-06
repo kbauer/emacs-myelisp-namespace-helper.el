@@ -1,5 +1,6 @@
 ;;;; TEMPORARY PREFIX HELPERS
 ;; Until I implement a proper mode.
+;; Published as https://gist.github.com/kbauer/f629eaf78f8dd1117225eaf2baf717d5
 ;; 
 ;; In emacs-lisp, there is no native namespace system.
 ;; Any attempt to implement namespaces as macros is bound
@@ -35,7 +36,8 @@
   "Set as file-local variable to override ~ key.")
 
 
-(put 'myelisp-namespace-helper-prefix 'safe-local-variable #'stringp)
+(put 'myelisp-namespace-helper-prefix 'safe-local-variable 
+  (lambda (e) (or (stringp e) (symbolp e))))
 
 
 (defun myelisp-namespace-helper ()
