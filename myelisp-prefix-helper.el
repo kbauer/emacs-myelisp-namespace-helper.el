@@ -1,25 +1,29 @@
 ;;;; TEMPORARY PREFIX HELPERS
-;;; Until I implement a proper mode.
-;;; 
-;;; In emacs-lisp, there is no native namespace system.
-;;; Any attempt to implement namespaces as macros is bound
-;;; to miss some current or future interactive feature
-;;; depending on full function names in the code.
-;;; 
-;;; This here is meant to make the process less difficult.
-;;; 
-;;; Usage:
-;;; 
-;;;   - Paste into your .emacs file
-;;;   - In emacs-lisp or lisp-interaction modes, 
-;;;     insert a buffer-appropriate namespace prefix 
-;;;     by pressing "-" twice. Private functions following
-;;;     the "NAMESPACE--NAME" convention are inserted
-;;;     by pressing it three times.
-;;;   - Works for `M-x eval-expression.' too. Here the
-;;;     last used emacs-lisp buffer is assumed.
-;;;   - Use file-variable `myelisp-namespace-helper-prefix'
-;;;     to override default.
+;; Until I implement a proper mode.
+;; 
+;; In emacs-lisp, there is no native namespace system.
+;; Any attempt to implement namespaces as macros is bound
+;; to miss some current or future interactive feature
+;; depending on full function names in the code.
+;; 
+;; This here is meant to make the process less difficult.
+;; 
+;; Usage:
+;; 
+;;   - Paste into your .emacs file
+;;   - In emacs-lisp or lisp-interaction modes, 
+;;     insert a buffer-appropriate namespace prefix 
+;;     by pressing "-" twice. Private functions following
+;;     the "NAMESPACE--NAME" convention are inserted
+;;     by pressing it three times.
+;;   - Works for `M-x eval-expression.' too. Here the
+;;     last used emacs-lisp buffer is assumed.
+;;   - Use file-variable `myelisp-namespace-helper-prefix'
+;;     to override default.
+;; 
+;; Future plans: Make it configurable, and cross-mode, as a
+;; minor-mode. E.g. in LaTeX, binding @@ to produce 
+;; a package-appropriate prefix would be useful.
 
 
 (define-key emacs-lisp-mode-map (kbd "-") #'myelisp-namespace-helper)
