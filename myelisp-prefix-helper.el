@@ -14,35 +14,39 @@
 ;;   - Paste into your .emacs file
 ;;   - In emacs-lisp or lisp-interaction modes, 
 ;;     insert a buffer-appropriate namespace prefix 
-;;     by pressing "-" twice. Private functions following
+;;     by pressing "-" once. Private functions following
 ;;     the "NAMESPACE--NAME" convention are inserted
-;;     by pressing it three times.
+;;     by pressing it twice.
+;;   - If preceded by characters of a symbol, 
+;;     or if given a prefix argument, - just inserts -.
+;;   - Use `C-u 1 -` or `C-q -` to insert a hyphen.
 ;;   - Works for `M-x eval-expression.' too. Here the
 ;;     last used emacs-lisp buffer is assumed.
 ;;   - Use file-variable `myelisp-namespace-helper-prefix'
 ;;     to override default.
 ;; 
+;; With this code, `prettify-symbols-mode' collapses the namespace
+;; prefix into a highlighted hyphen, mirroring the input method.
+;; 
 ;; Future plans: Make it configurable, and cross-mode, as a
 ;; minor-mode. E.g. in LaTeX, binding @@ to produce 
 ;; a package-appropriate prefix would be useful.
 
-
-(define-key emacs-lisp-mode-map (kbd "-") #'myelisp-namespace-helper)
-(define-key lisp-interaction-mode-map (kbd "-") #'myelisp-namespace-helper)
-(define-key read-expression-map (kbd "-") #'myelisp-namespace-helper)
+(dolist (map (list emacs-lisp-mode-map lisp-interaction-mode-map read-expression-map))
+  (define-key map (kbd "-") #'myelisp-namespace-helper))
 
 
 (defvar-local myelisp-namespace-helper-prefix nil
   "Set as file-local variable to override ~ key.")
 
 
-(put 'myelisp-namespace-helper-prefix 'safe-local-variable 
-  (lambda (e) (or (stringp e) (symbolp e))))
+(put 'myelisp-namespace-helper-prefix 'safe-local-variable #'stringp)
 
 
 (defun myelisp-namespace-helper ()
-  "Following preceding -, Insert NAMESPACE--; Reduce to NAMESPACE- if already there.
-With prefix argument, just call `self-insert-command'."
+  "If directly preceded by symbol, insert self.
+Otherwise insert NAMESPACE-.
+With prefix, just insert self prefix times."
   (interactive)
   (if current-prefix-arg
       (self-insert-command (prefix-numeric-value current-prefix-arg))
@@ -54,10 +58,10 @@ With prefix argument, just call `self-insert-command'."
            (concat "\\_<" (regexp-quote prefix))
            (line-beginning-position))
          (insert "-"))
-        ((looking-back "\\_<-" (line-beginning-position))
-         (replace-match prefix t t))
+        ((looking-back "\\s_\\|\\sw" (line-beginning-position))
+         (self-insert-command 1))
         (t
-          (self-insert-command 1))))))
+         (insert prefix))))))
 
 
 (defun myelisp-namespace-for-buffer (&optional buf)
@@ -80,3 +84,38 @@ With prefix argument, just call `self-insert-command'."
       (t
         (replace-regexp-in-string "[[:blank:]]" ""
           (buffer-name))))))
+
+
+(add-hook 'prettify-symbols-mode-hook #'myelisp-namespace-helper-pretty-init)
+(defun myelisp-namespace-helper-pretty-init ()
+  "Support for displaying prefices in `prettify-symbols-mode'."
+  (let*((prefix-regexp
+          (concat
+            "\\_<"
+            (regexp-quote (myelisp-namespace-for-buffer))
+            "\\(?1:--?\\)")))
+    (with-temp-message "Enabling reduction of namespace prefix.")
+    (make-local-variable 'font-lock-extra-managed-props)
+    (push 'display font-lock-extra-managed-props)
+    (make-local-variable 'prettify-symbols-alist)
+    (remove-text-properties (point-min) (point-max) '(display))
+    (font-lock-add-keywords nil
+      `((,prefix-regexp 1 (myelisp-namespace-helper-pretty-apply) prepend)))))
+
+
+(defun myelisp-namespace-helper-pretty-apply ()
+  (prog1 nil
+    (when prettify-symbols-mode
+      (add-text-properties
+        (match-beginning 0)
+        (match-end 0)
+        (list 'display 
+          (propertize
+            (substring-no-properties (match-string 1))
+            'face 'myelisp-namespace-helper-pretty-face))))))
+
+
+(defface myelisp-namespace-helper-pretty-face 
+  '((t :inherit (bold link)))
+  "Face used for highlighting collapsed namespace prefices."
+  :group 'myelisp)
