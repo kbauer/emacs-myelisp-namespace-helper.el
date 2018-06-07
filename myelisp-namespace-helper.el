@@ -1,8 +1,36 @@
+;;; myelisp-prefix-helper.el --- A hack for namespace insertion  -*- lexical-binding: t; coding: utf-8; lisp-indent-offset: nil; -*-
+
+;; Copyright (C) 2018  Klaus-Dieter Bauer
+
+;; Author: Klaus-Dieter Bauer <kdb.devel@gmail.com>
+;; Keywords: lisp, tools, convenience
+
+;; This program is free software; you can redistribute it and/or modify
+;; it under the terms of the GNU General Public License as published by
+;; the Free Software Foundation, either version 3 of the License, or
+;; (at your option) any later version.
+
+;; This program is distributed in the hope that it will be useful,
+;; but WITHOUT ANY WARRANTY; without even the implied warranty of
+;; MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+;; GNU General Public License for more details.
+
+;; You should have received a copy of the GNU General Public License
+;; along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+;;; Commentary:
+
 ;;;; TEMPORARY PREFIX HELPERS
 ;; Until I implement a proper mode.
-;; Published as https://gist.github.com/kbauer/f629eaf78f8dd1117225eaf2baf717d5
+;; Published as `https://gist.github.com/kbauer/f629eaf78f8dd1117225eaf2baf717d5'
 ;; 
 ;; See docstring of `myelisp-prefix-helper'.
+
+;;; Code:
+
+
+(require 'cl-macs)
+
 
 (dolist (map (list emacs-lisp-mode-map lisp-interaction-mode-map read-expression-map))
   (define-key map (kbd "-") #'myelisp-namespace-helper))
@@ -102,7 +130,7 @@ a package-appropriate prefix would be useful."
           (buffer-name))))))
 
 
-(mymessage "Enabling support for prefix abbreviation with `prettify-symbols-mode'.")
+(message "myelisp-prefix-helper: Enabling support for prefix abbreviation with `prettify-symbols-mode'.")
 
 
 (add-hook 'prettify-symbols-mode-hook #'myelisp-namespace-helper-pretty-init)
@@ -138,3 +166,7 @@ a package-appropriate prefix would be useful."
   '((t :inherit (bold link)))
   "Face used for highlighting collapsed namespace prefices."
   :group 'myelisp)
+
+
+(provide 'myelisp-namespace-helper)
+;;; myelisp-prefix-helper.el ends here
