@@ -88,7 +88,7 @@ a package-appropriate prefix would be useful."
   (interactive)
   (let (prefix)
     (setq prefix
-      (concat (myelisp-namespace-for-buffer) "-"))
+      (concat (myelisp-namespace-helper-get-buffer-namespace) "-"))
     (cond
       ((and
          ;; If current-prefix-arg is given, assume intent to insert `-' chars.
@@ -108,7 +108,7 @@ a package-appropriate prefix would be useful."
         (call-interactively #'self-insert-command)))))
 
 
-(defun myelisp-namespace-for-buffer (&optional buf)
+(defun myelisp-namespace-helper-get-buffer-namespace (&optional buf)
   (with-current-buffer (or buf (current-buffer))
     (cond
       ((minibufferp)
@@ -116,7 +116,7 @@ a package-appropriate prefix would be useful."
          for buf being the buffers
          for mode = (with-current-buffer buf major-mode)
          if (memq mode '(emacs-lisp-mode lisp-interaction-mode))
-         return (myelisp-namespace-for-buffer buf)
+         return (myelisp-namespace-helper-get-buffer-namespace buf)
          finally return nil))
       ((stringp myelisp-namespace-helper-prefix)
        myelisp-namespace-helper-prefix)
@@ -139,7 +139,7 @@ a package-appropriate prefix would be useful."
   (let*((prefix-regexp
           (concat
             "\\_<"
-            (regexp-quote (myelisp-namespace-for-buffer))
+            (regexp-quote (myelisp-namespace-helper-get-buffer-namespace))
             "\\(?1:--?\\)")))
     (with-temp-message "Enabling reduction of namespace prefix.")
     (make-local-variable 'font-lock-extra-managed-props)
