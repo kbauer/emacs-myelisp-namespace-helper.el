@@ -46,14 +46,9 @@
 (defun myelisp-namespace-helper ()
   "Insert - or NAMESPACE-.
 
-In emacs-lisp, there is no native namespace system.
-Any attempt to implement namespaces as macros is bound
-to miss some current or future interactive feature
-depending on full function names in the code.
 
-This here is meant to make the process less difficult.
-
-Usage:
+USAGE
+=====
 
   - Paste into your .emacs file
   
@@ -82,9 +77,61 @@ Usage:
 With this code, `prettify-symbols-mode' collapses the namespace
 prefix into a highlighted hyphen, mirroring the input method.
 
-Future plans: Make it configurable, and cross-mode, as a
-minor-mode. E.g. in LaTeX, binding @@ to produce 
-a package-appropriate prefix would be useful."
+
+MOTIVATION
+==========
+
+In emacs-lisp, there is no native namespace system. While it has
+the convenient consequence, that the same symbol means the same
+everywhere (a boon for interactive features like `M-x
+describe-function' or `M-x find-function'), it also results in a
+lot of “boilerplate” re-typing of namespace prefix strings.
+
+While implementations of macro-based namespaces such as
+`names.el' exist, they are bound to lack support for current or
+future interactive features, that depend on the presence of full
+function names in the source-code files.
+
+Any attempt to implement namespaces as macros is bound
+to miss some current or future interactive feature
+depending on full function names in the code.
+
+This provisional package is meant to make working with namespace
+prefices more convenient in the meantime.
+
+It is also meant for experimenting with what works.
+
+
+TODO: WHAT WORKS?
+=================
+
+  - Prettification, and maybe insertion, should be limited to
+    `private--names' by default. The programmer should remain
+    aware of how verbose client code will see the “public”
+    interface.
+
+  - This would also solve the issue of typing negative numbers
+    or the `-' function without `C-q' prefix.
+
+
+WHAT DID NOT WORK
+=================
+
+  - Key `~'. It is the least common printable ASCII character
+    in Emacs's lisp code, but using the same key for inserting
+    the prefix and for separating words in symbols proved a huge
+    usability advantage.
+
+  - Double `--' for prefix, triple `---' for private prefix.
+    Possibly a matter of training, but it felt wrong.
+
+
+TODO: FUTURE PLANS
+==================
+
+Make it configurable, and cross-mode, as a minor-mode. E.g. in
+LaTeX, binding @@ to produce a package-appropriate prefix would
+be useful."
   (interactive)
   (let (prefix)
     (setq prefix

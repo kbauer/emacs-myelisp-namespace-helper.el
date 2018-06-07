@@ -1,1 +1,2 @@
-- 2018-06-07 Made file namespace clean.
+- 2018-06-08 More documentation.
+- 2018-06-07 Made file namespace-clean.
