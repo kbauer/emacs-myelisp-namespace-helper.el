@@ -1,2 +1,3 @@
+- 2018-06-10 Bugfix: Limited the faces that affect the <kbd>-</kbd> key; Previously ``show-paren-match`` face prevented insertion when cursor located immediately before a ``(``.
 - 2018-06-08 More documentation.
 - 2018-06-07 Made file namespace-clean.

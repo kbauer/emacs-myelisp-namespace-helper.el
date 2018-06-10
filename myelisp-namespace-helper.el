@@ -60,7 +60,8 @@ USAGE
         behave like normal `self-insert-command'.
       
       * The same applies inside strings and comments,
-        unless `point' is preceded by a backquote (`).
+        unless `point' is preceded by a backquote (`)
+        or quote (').
       
       * When invoked with a prefix argument, likewise
         delegate to `self-insert-command'.
@@ -129,9 +130,11 @@ WHAT DID NOT WORK
 TODO: FUTURE PLANS
 ==================
 
-Make it configurable, and cross-mode, as a minor-mode. E.g. in
-LaTeX, binding @@ to produce a package-appropriate prefix would
-be useful."
+  - Separate minor mode from `prettify-symbols-mode'.
+
+  - Make it configurable, and cross-mode, as a minor-mode. E.g.
+    in LaTeX, binding @@ to produce a package-appropriate prefix
+    would be useful."
   (interactive)
   (let (prefix)
     (setq prefix
@@ -147,12 +150,17 @@ be useful."
          ;; Inside strings and comments, only insert prefix when
          ;; preceded by backquote (`). Strings and comments are recognized
          ;; in font-lock-mode by *any* face being set.
-         (or (null (face-at-point))
-             (looking-back "`" (1- (point)))))
+         (or (not (memq (face-at-point) 
+                    '( font-lock-comment-face
+                       font-lock-comment-delimiter-face
+                       font-lock-doc-face
+                       font-lock-string-face)))
+             (looking-back (rx (any "`'")) (1- (point)))))
        (insert prefix))
       (t
         ;; inherits `current-prefix-arg'.
         (call-interactively #'self-insert-command)))))
+  
 
 
 (defun myelisp-namespace-helper-get-buffer-namespace (&optional buf)
@@ -191,7 +199,6 @@ be useful."
     (with-temp-message "Enabling reduction of namespace prefix.")
     (make-local-variable 'font-lock-extra-managed-props)
     (push 'display font-lock-extra-managed-props)
-    (make-local-variable 'prettify-symbols-alist)
     (remove-text-properties (point-min) (point-max) '(display))
     (font-lock-add-keywords nil
       `((,prefix-regexp 1 (myelisp-namespace-helper-pretty-apply) prepend)))))
