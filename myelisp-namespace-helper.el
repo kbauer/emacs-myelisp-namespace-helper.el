@@ -32,19 +32,64 @@
 (require 'cl-macs)
 
 
-(dolist (map (list emacs-lisp-mode-map lisp-interaction-mode-map read-expression-map))
-  (define-key map (kbd "-") #'myelisp-namespace-helper))
-
-
 (defvar-local myelisp-namespace-helper-prefix nil
-  "Set as file-local variable to override ~ key.")
+  "Ignored.
+TODO: Remove this variable, or make it functional.")
 
 
 (put 'myelisp-namespace-helper-prefix 'safe-local-variable #'stringp)
 
 
-(defun myelisp-namespace-helper ()
-  "Insert - or NAMESPACE-.
+(defconst myelisp-namespace-helper-inhibiting-faces
+  (list
+    'font-lock-comment-face
+    'font-lock-comment-delimiter-face
+    'font-lock-doc-face
+    'font-lock-string-face)
+  "A list of faces, that inhibit special behavior of the `-' key,
+unless the preceding context marks the intent of inserting a symbol.
+
+See `myelisp-namespace-helper-function' for details.")
+
+
+(defconst myelisp-namespace-helper-affected-modes
+  (list 'emacs-lisp-mode
+        'lisp-interaction-mode)
+  "List of modes affected my `myelisp-namespace-helper-global-mode'.")
+
+
+(defun myelisp-namespace-helper-function ()
+  (cond
+    ((and (eq last-input-event ?-)
+
+          ;; Insert prefix, if looking at lone `-' character.
+          (looking-back (rx symbol-start "-") (1- (point)))
+
+          ;; If face indicates comment or string, only replace `-'
+          ;; character if preceded by quote character indicating
+          ;; that a symbol name is meant.
+          (or (not (memq (face-at-point) myelisp-namespace-helper-inhibiting-faces))
+              (looking-back (rx (any "`'") "-") (- (point) 2))))
+     (backward-delete-char 1)
+     (unless (minibufferp)
+       (with-temp-message "`myelisp-namespace-helper-mode': Replacing `-' by prefix."))
+     (insert (myelisp-namespace-helper-get-buffer-namespace) "-"))
+
+    ;; After number or whitespace keys, replace the prefix by a sole hyphen,
+    ;; as it would otherwise interfere with typing `-1' or `(- 1 2)'.
+    ((and (memq last-input-event '(?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?\ ?\n return))
+          (save-excursion
+            (backward-char)
+            (looking-back
+              (concat "\\_<" (myelisp-namespace-helper-get-buffer-namespace) "-")
+              (line-beginning-position))))
+     (unless (minibufferp)
+       (with-temp-message "`myelisp-namespace-helper-mode': Replacing prefix by `-'."))
+     (save-excursion (replace-match "-")))))
+
+
+(define-minor-mode myelisp-namespace-helper-mode 
+  "Use the `-' key to insert a namespace prefix.
 
 
 USAGE
@@ -103,16 +148,42 @@ prefices more convenient in the meantime.
 It is also meant for experimenting with what works.
 
 
-TODO: WHAT WORKS?
-=================
+CHANGELOG
+=========
 
-  - Prettification, and maybe insertion, should be limited to
+2018-06-12 Rewrote in terms of the `post-self-insert-hook'. Sadly,
+           on the way the limited support for the `eval-expression'
+           as only case of minibuffer usage was lost too.
+
+           The improvement, that now `-1' or `(- 1 2)' can be
+           typed without producing a prefix, is more important
+           however.
+           
+           Also merged CHANGELOG into the source file.
+
+2018-06-10 Bugfix: Limited the faces that affect the `-' key;
+           Previously `show-paren-match' face prevented insertion
+           when cursor located immediately before a `('.
+
+2018-06-08 More documentation.
+
+2018-06-07 Made file namespace-clean.
+
+
+TODO: IMPROVEMENTS?
+===================
+
+  - Prettification, and maybe insertion, should possibly be limited to
     `private--names' by default. The programmer should remain
     aware of how verbose client code will see the “public”
     interface.
 
   - This would also solve the issue of typing negative numbers
     or the `-' function without `C-q' prefix.
+    
+  - Need to find way to support minibuffer. I currently have no
+    general way of telling generally, if the read-request to the
+    minibuffer wants a symbol/expression as completion.
 
 
 WHAT DID NOT WORK
@@ -135,35 +206,23 @@ TODO: FUTURE PLANS
   - Make it configurable, and cross-mode, as a minor-mode. E.g.
     in LaTeX, binding @@ to produce a package-appropriate prefix
     would be useful."
-  (interactive)
-  (let (prefix)
-    (setq prefix
-      (concat (myelisp-namespace-helper-get-buffer-namespace) "-"))
-    (cond
-      ((and
-         ;; If current-prefix-arg is given, assume intent to insert `-' chars.
-         (null current-prefix-arg)
-         ;; Likewise, when already inside a started symbol.
-         (not (looking-back
-                (rx (or (syntax word) (syntax symbol))) 
-                (1- (point))))
-         ;; Inside strings and comments, only insert prefix when
-         ;; preceded by backquote (`). Strings and comments are recognized
-         ;; in font-lock-mode by *any* face being set.
-         (or (not (memq (face-at-point) 
-                    '( font-lock-comment-face
-                       font-lock-comment-delimiter-face
-                       font-lock-doc-face
-                       font-lock-string-face)))
-             (looking-back (rx (any "`'")) (1- (point)))))
-       (insert prefix))
-      (t
-        ;; inherits `current-prefix-arg'.
-        (call-interactively #'self-insert-command)))))
+  :lighter " Nsh"
   
+  (when myelisp-namespace-helper-mode
+    (add-hook 'post-self-insert-hook 'myelisp-namespace-helper-function nil t))
+  (unless myelisp-namespace-helper-mode
+    (remove-hook 'post-self-insert-hook 'myelisp-namespace-helper-function t)))
+
+
+(define-global-minor-mode myelisp-namespace-helper-global-mode myelisp-namespace-helper-mode
+  (lambda ()
+    (cond
+      ((memq major-mode myelisp-namespace-helper-affected-modes)
+       (myelisp-namespace-helper-mode +1)))))
 
 
 (defun myelisp-namespace-helper-get-buffer-namespace (&optional buf)
+  "Returns namespace prefix as string, without trailing `-'."
   (with-current-buffer (or buf (current-buffer))
     (cond
       ((minibufferp)
