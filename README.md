@@ -14,10 +14,6 @@ exist, they are bound to lack support for current or future
 interactive features, that depend on the presence of full function
 names in the source-code files.
 
-Any attempt to implement namespaces as macros is bound
-to miss some current or future interactive feature
-depending on full function names in the code.
-
 This provisional package is meant to make working with namespace
 prefices more convenient in the meantime.
 
