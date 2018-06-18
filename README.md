@@ -53,6 +53,9 @@ USAGE
       * when typed inside a string or comment, unless preceded by a
         backtick (`` ` ``) or quote (`'`) character, or
       * when inserted using `quoted-insert` (normally `C-q -`).
+
+  - Define a file variable `myelisp-namespace-helper-prefix` to override the
+    default prefix.
     
 With this code, `prettify-symbols-mode` collapses the namespace
 prefix into a highlighted hyphen, mirroring the input method.

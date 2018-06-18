@@ -34,11 +34,9 @@
 
 
 (defvar-local myelisp-namespace-helper-prefix nil
-  "Ignored.
-TODO: Remove this variable, or make it functional.")
-
-
-(put 'myelisp-namespace-helper-prefix 'safe-local-variable #'stringp)
+  "When set as a file-local variable, overrides the default namespace prefix.
+Expected to be a symbol.")
+(put 'myelisp-namespace-helper-prefix 'safe-local-variable #'symbolp)
 
 
 (defconst myelisp-namespace-helper-inhibiting-faces
@@ -110,8 +108,13 @@ See `myelisp-namespace-helper-function' for details.")
 
 
 (defun myelisp-namespace-helper-get-buffer-namespace (&optional buf)
-  "Returns namespace prefix as string, without trailing `-'."
+  "Returns namespace prefix as string, without trailing `-'.
+
+Usually the `buffer-file-name' or `buffer-name', but can be
+overriden by the `myelisp-namespace-helper-prefix' file-local variable."
   (with-current-buffer (or buf (current-buffer))
+    (when (stringp myelisp-namespace-helper-prefix)
+      (setq-local myelisp-namespace-helper-prefix (intern myelisp-namespace-helper-prefix)))
     (cond
       ((minibufferp)
        (cl-loop
@@ -120,8 +123,6 @@ See `myelisp-namespace-helper-function' for details.")
          if (memq mode '(emacs-lisp-mode lisp-interaction-mode))
          return (myelisp-namespace-helper-get-buffer-namespace buf)
          finally return nil))
-      ((stringp myelisp-namespace-helper-prefix)
-       myelisp-namespace-helper-prefix)
       ((and myelisp-namespace-helper-prefix
             (symbolp myelisp-namespace-helper-prefix))
        (symbol-name myelisp-namespace-helper-prefix))
