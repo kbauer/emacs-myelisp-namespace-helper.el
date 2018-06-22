@@ -65,18 +65,29 @@ unless the preceding context marks the intent of inserting a symbol.
 See `myelisp-namespace-helper--function' for details.")
 
 
-(defconst myelisp-namespace-helper-affected-modes-alist
+(defcustom myelisp-namespace-helper-affected-modes-alist
   (list
-    (list 'emacs-lisp-mode       ?-)
-    (list 'lisp-interaction-mode ?-)
-    (list 'tex-mode              ?@)
-    (list 'latex-mode            ?@))
+    (list 'emacs-lisp-mode       ?- t)
+    (list 'lisp-interaction-mode ?- t)
+    (list 'tex-mode              ?@ nil)
+    (list 'latex-mode            ?@ nil))
   "Alist configuring modes affected by `myelisp-namespace-helper-mode'.
 
-Each entry has the form (MAJOR-MODE CHAR)
-where MAJOR-MODE is a symbol denoting a major-mode,
-and CHAR is the prefix character to be used as delimiter
-and insertion trigger.")
+Each entry has the form (MAJOR-MODE CHAR ENABLED) where
+
+MAJOR-MODE is a symbol denoting a major-mode,
+CHAR is the character triggering namespace insertion
+  in that mode, and namespace collapsing with
+  `prettify-symbols-mode', and
+ENABLED is a boolean flag, determining whether
+  `myelisp-namespace-helper-global-mode' affects
+  this mode."
+  :group 'myelisp-namespace-helper
+  :type 
+  `(repeat 
+     (list (symbol :tag "Major mode")
+           (character :tag "Trigger character")
+           (boolean :tag "Affected by global mode"))))
 
 
 (eval-and-compile
@@ -152,10 +163,11 @@ If it hasn't been defined, signal error."
 
 (define-global-minor-mode myelisp-namespace-helper-global-mode myelisp-namespace-helper-mode
   (lambda ()
-    (cond
-      ((assq major-mode myelisp-namespace-helper-affected-modes-alist)
-       (myelisp-namespace-helper-mode +1)))))
+    (if (nth 2 (assq major-mode myelisp-namespace-helper-affected-modes-alist))
+        (myelisp-namespace-helper-mode +1)
+      (myelisp-namespace-helper-mode -1))))
 
+;; Ensure that the global mode is actually enabled by the customization variable.
 (when myelisp-namespace-helper-global-mode
   (myelisp-namespace-helper-global-mode +1))
 
