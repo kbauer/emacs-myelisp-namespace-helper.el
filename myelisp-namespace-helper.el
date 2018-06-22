@@ -39,14 +39,18 @@ Expected to be a symbol.")
 (put 'myelisp-namespace-helper-prefix 'safe-local-variable #'symbolp)
 
 
-(defvar-local myelisp-namespace-helper-function nil
-  "The `post-self-insert-hook' function used in the current buffer.
+(defvar-local myelisp-namespace-helper--function nil
+  "The `post-self-insert-hook' function used in the current buffer.")
 
-Determined by either the buffer-local value, 
-or the major-mode entry in `myelisp-namespace-helper-affected-modes-alist'.
 
-If all else fails, falls back to the function 
-`myelisp-namespace-helper-function'.")
+(defvar-local myelisp-namespace-helper-char ?-
+  "Character to treat as prefix character.
+
+Determined by either
+  - `myelisp-namespace-helper-affected-modes-alist'
+  - Its value as file-variable (must be a character).
+  - or ?- by default.")
+(put 'myelisp-namespace-helper-char 'safe-local-variable #'characterp)
 
 
 (defconst myelisp-namespace-helper-inhibiting-faces
@@ -58,26 +62,39 @@ If all else fails, falls back to the function
   "A list of faces, that inhibit special behavior of the `-' key,
 unless the preceding context marks the intent of inserting a symbol.
 
-See `myelisp-namespace-helper-function' for details.")
+See `myelisp-namespace-helper--function' for details.")
 
 
 (defconst myelisp-namespace-helper-affected-modes-alist
   (list
-    (list 'emacs-lisp-mode #'myelisp-namespace-helper-function)
-    (list 'lisp-interaction-mode #'myelisp-namespace-helper-function)
-    (list 'tex-mode #'myelisp-namespace-helper-function-@)
-    (list 'latex-mode #'myelisp-namespace-helper-function-@))
+    (list 'emacs-lisp-mode       ?-)
+    (list 'lisp-interaction-mode ?-)
+    (list 'tex-mode              ?@)
+    (list 'latex-mode            ?@))
   "Alist configuring modes affected by `myelisp-namespace-helper-mode'.
 
-Each entry has the form (MAJOR-MODE FUNCTION)
-where MAJOR-MODE is a symbol denoting a major-mode
-and FUNCTION is a valid `post-self-insert-hook' function
-as defined with `myelisp-namespace-helper-define-function-for-char'.")
+Each entry has the form (MAJOR-MODE CHAR)
+where MAJOR-MODE is a symbol denoting a major-mode,
+and CHAR is the prefix character to be used as delimiter
+and insertion trigger.")
 
 
-(defmacro myelisp-namespace-helper-define-function-for-char (function-name char)
+(eval-and-compile
+(defun myelisp-namespace-helper--function-for-char (char &optional noerror)
+  "Return the `post-self-insert-hook' function associated with `CHAR'.
+If it hasn't been defined, signal error."
+  (let ((name (intern (format "myelisp-namespace-helper--function-for/%c" char))))
+    (if (or noerror (fboundp name))
+        name
+      (error 
+          (concat "Namespace function for `%c' hasn't been defined "
+            "with `myelisp-namespace-helper-define-function-for-char'.")
+        char)))))
+
+
+(defmacro myelisp-namespace-helper-define-function-for-char (char)
   (let ((string (string char)))
-   `(defun ,function-name ()
+   `(defun ,(myelisp-namespace-helper--function-for-char char t) ()
       (cond
         ((and (eq last-input-event ,char)
               
@@ -111,8 +128,8 @@ as defined with `myelisp-namespace-helper-define-function-for-char'.")
          (save-excursion (replace-match ,string t t)))))))
 
 
-(myelisp-namespace-helper-define-function-for-char myelisp-namespace-helper-function ?-)
-(myelisp-namespace-helper-define-function-for-char myelisp-namespace-helper-function-@ ?@)
+(myelisp-namespace-helper-define-function-for-char ?-)
+(myelisp-namespace-helper-define-function-for-char ?@)
 
 
 (define-minor-mode myelisp-namespace-helper-mode 
@@ -120,13 +137,17 @@ as defined with `myelisp-namespace-helper-define-function-for-char'.")
   :lighter " Nsh"
 
   (when myelisp-namespace-helper-mode
-    (setq-local myelisp-namespace-helper-function
-      (or (cdr (assq 'myelisp-namespace-helper-function (buffer-local-variables)))
+    (setq-local myelisp-namespace-helper-char nil)
+    (hack-local-variables)
+    (setq-local myelisp-namespace-helper-char
+      (or myelisp-namespace-helper-char
           (nth 1 (assq major-mode myelisp-namespace-helper-affected-modes-alist))
-          #'myelisp-namespace-helper-function))
-    (add-hook 'post-self-insert-hook myelisp-namespace-helper-function nil t))
+          ?-))
+    (setq-local myelisp-namespace-helper--function
+      (myelisp-namespace-helper--function-for-char myelisp-namespace-helper-char))
+    (add-hook 'post-self-insert-hook myelisp-namespace-helper--function nil t))
   (unless myelisp-namespace-helper-mode
-    (remove-hook 'post-self-insert-hook myelisp-namespace-helper-function t)))
+    (remove-hook 'post-self-insert-hook myelisp-namespace-helper--function t)))
 
 
 (define-global-minor-mode myelisp-namespace-helper-global-mode myelisp-namespace-helper-mode
@@ -175,7 +196,10 @@ overriden by the `myelisp-namespace-helper-prefix' file-local variable."
           (concat
             "\\_<"
             (regexp-quote (myelisp-namespace-helper-get-buffer-namespace))
-            "\\(?1:--?\\)")))
+            "\\(?1:"
+            (regexp-quote 
+              (string myelisp-namespace-helper-char myelisp-namespace-helper-char))
+            "?\\)")))
     (with-temp-message "Enabling reduction of namespace prefix.")
     (make-local-variable 'font-lock-extra-managed-props)
     (push 'display font-lock-extra-managed-props)
