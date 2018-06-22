@@ -60,10 +60,22 @@ USAGE
 With this code, `prettify-symbols-mode` collapses the namespace
 prefix into a highlighted hyphen, mirroring the input method.
 
+For LaTeX, the `@` character is expanded to `NAMESPACE@`, corresponding
+to the common convention for internal variables and macros.
+By default, `myelisp-namespace-helper-global-mode` affects only
+Emacs Lisp buffers. This behavior can be changed by customizing
+`myelisp-namespace-helper-affected-modes-alist`
+via <kbd>M-x customize-variable</kbd>.
 
 
 CHANGELOG
 =========
+
+**2018-06-23.2** Made prefix character, and whether modes are affected
+by `myelisp-namespace-helper-global-mode` configurable via
+`M-x customize-variable myelisp-namespace-helper-affected-modes-alist`.
+
+**2018-06-23.1** Added support for LaTeX with the `@` prefix character.
 
 **2018-06-14**
   - Created proper repository with separate `README.md` file from gist.
@@ -121,7 +133,3 @@ TODO: FUTURE PLANS
 ==================
 
   - Separate minor mode from `prettify-symbols-mode`.
-
-  - Make it configurable, and cross-mode, as a minor-mode. E.g.
-    in LaTeX, binding @@ to produce a package-appropriate prefix
-    would be useful.
