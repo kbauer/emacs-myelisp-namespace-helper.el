@@ -57,24 +57,24 @@ See `myelisp-namespace-helper-function' for details.")
   "List of modes affected my `myelisp-namespace-helper-global-mode'.")
 
 
-(defun myelisp-namespace-helper-function ()
-  (progn
-    (progn
+(defmacro myelisp-namespace-helper-define-function-for-char (function-name char)
+  (let ((string (string char)))
+   `(defun ,function-name ()
       (cond
-        ((and (eq last-input-event ?-)
+        ((and (eq last-input-event ,char)
               
               ;; Insert prefix, if looking at lone `-' character.
-              (looking-back (rx symbol-start "-") (1- (point)))
+              (looking-back (rx symbol-start ,string) (1- (point)))
               
               ;; If face indicates comment or string, only replace `-'
               ;; character if preceded by quote character indicating
               ;; that a symbol name is meant.
               (or (not (memq (face-at-point) myelisp-namespace-helper-inhibiting-faces))
-                  (looking-back (rx (any "`'") "-") (- (point) 2))))
+                  (looking-back (rx (any "`'") ,string) (- (point) 2))))
          (backward-delete-char 1)
          (unless (minibufferp)
-           (with-temp-message "`myelisp-namespace-helper-mode': Replacing `-' by prefix."))
-         (insert (myelisp-namespace-helper-get-buffer-namespace) "-"))
+           (with-temp-message ,(concat "`myelisp-namespace-helper-mode': Replacing `"string"' by prefix.")))
+         (insert (myelisp-namespace-helper-get-buffer-namespace) ,string))
         
         ;; After number or whitespace keys, replace the prefix by a sole hyphen,
         ;; as it would otherwise interfere with typing `-1' or `(- 1 2)'.
@@ -82,11 +82,14 @@ See `myelisp-namespace-helper-function' for details.")
               (save-excursion
                 (backward-char)
                 (looking-back
-                  (concat "\\_<" (myelisp-namespace-helper-get-buffer-namespace) "-")
+                  (concat "\\_<" (myelisp-namespace-helper-get-buffer-namespace) ,string)
                   (line-beginning-position))))
          (unless (minibufferp)
-           (with-temp-message "`myelisp-namespace-helper-mode': Replacing prefix by `-'."))
-         (save-excursion (replace-match "-")))))))
+           (with-temp-message ,(concat "`myelisp-namespace-helper-mode': Replacing prefix by `"string"'.")))
+         (save-excursion (replace-match ,string t t)))))))
+
+
+(myelisp-namespace-helper-define-function-for-char myelisp-namespace-helper-function ?-)
 
 
 (define-minor-mode myelisp-namespace-helper-mode 
