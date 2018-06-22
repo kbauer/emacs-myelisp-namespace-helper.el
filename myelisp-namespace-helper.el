@@ -39,6 +39,16 @@ Expected to be a symbol.")
 (put 'myelisp-namespace-helper-prefix 'safe-local-variable #'symbolp)
 
 
+(defvar-local myelisp-namespace-helper-function nil
+  "The `post-self-insert-hook' function used in the current buffer.
+
+Determined by either the buffer-local value, 
+or the major-mode entry in `myelisp-namespace-helper-affected-modes-alist'.
+
+If all else fails, falls back to the function 
+`myelisp-namespace-helper-function'.")
+
+
 (defconst myelisp-namespace-helper-inhibiting-faces
   (list
     'font-lock-comment-face
@@ -51,10 +61,18 @@ unless the preceding context marks the intent of inserting a symbol.
 See `myelisp-namespace-helper-function' for details.")
 
 
-(defconst myelisp-namespace-helper-affected-modes
-  (list 'emacs-lisp-mode
-        'lisp-interaction-mode)
-  "List of modes affected my `myelisp-namespace-helper-global-mode'.")
+(defconst myelisp-namespace-helper-affected-modes-alist
+  (list
+    (list 'emacs-lisp-mode #'myelisp-namespace-helper-function)
+    (list 'lisp-interaction-mode #'myelisp-namespace-helper-function)
+    (list 'tex-mode #'myelisp-namespace-helper-function-@)
+    (list 'latex-mode #'myelisp-namespace-helper-function-@))
+  "Alist configuring modes affected by `myelisp-namespace-helper-mode'.
+
+Each entry has the form (MAJOR-MODE FUNCTION)
+where MAJOR-MODE is a symbol denoting a major-mode
+and FUNCTION is a valid `post-self-insert-hook' function
+as defined with `myelisp-namespace-helper-define-function-for-char'.")
 
 
 (defmacro myelisp-namespace-helper-define-function-for-char (function-name char)
@@ -79,10 +97,14 @@ See `myelisp-namespace-helper-function' for details.")
         ;; After number or whitespace keys, replace the prefix by a sole hyphen,
         ;; as it would otherwise interfere with typing `-1' or `(- 1 2)'.
         ((and (memq last-input-event '(?0 ?1 ?2 ?3 ?4 ?5 ?6 ?7 ?8 ?9 ?\ ?\n return))
+              (eq ,char (char-before (1- (point))))
               (save-excursion
                 (backward-char)
                 (looking-back
-                  (concat "\\_<" (myelisp-namespace-helper-get-buffer-namespace) ,string)
+                  (concat "\\_<" 
+                    (regexp-quote
+                      (concat
+                        (myelisp-namespace-helper-get-buffer-namespace) ,string)))
                   (line-beginning-position))))
          (unless (minibufferp)
            (with-temp-message ,(concat "`myelisp-namespace-helper-mode': Replacing prefix by `"string"'.")))
@@ -90,22 +112,27 @@ See `myelisp-namespace-helper-function' for details.")
 
 
 (myelisp-namespace-helper-define-function-for-char myelisp-namespace-helper-function ?-)
+(myelisp-namespace-helper-define-function-for-char myelisp-namespace-helper-function-@ ?@)
 
 
 (define-minor-mode myelisp-namespace-helper-mode 
   "Use the `-' key to insert a namespace prefix in `emacs-lisp-mode'."
   :lighter " Nsh"
-  
+
   (when myelisp-namespace-helper-mode
-    (add-hook 'post-self-insert-hook 'myelisp-namespace-helper-function nil t))
+    (setq-local myelisp-namespace-helper-function
+      (or (cdr (assq 'myelisp-namespace-helper-function (buffer-local-variables)))
+          (nth 1 (assq major-mode myelisp-namespace-helper-affected-modes-alist))
+          #'myelisp-namespace-helper-function))
+    (add-hook 'post-self-insert-hook myelisp-namespace-helper-function nil t))
   (unless myelisp-namespace-helper-mode
-    (remove-hook 'post-self-insert-hook 'myelisp-namespace-helper-function t)))
+    (remove-hook 'post-self-insert-hook myelisp-namespace-helper-function t)))
 
 
 (define-global-minor-mode myelisp-namespace-helper-global-mode myelisp-namespace-helper-mode
   (lambda ()
     (cond
-      ((memq major-mode myelisp-namespace-helper-affected-modes)
+      ((assq major-mode myelisp-namespace-helper-affected-modes-alist)
        (myelisp-namespace-helper-mode +1)))))
 
 (when myelisp-namespace-helper-global-mode
