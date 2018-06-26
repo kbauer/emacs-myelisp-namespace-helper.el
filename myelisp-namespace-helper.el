@@ -69,6 +69,7 @@ See `myelisp-namespace-helper--function' for details.")
   (list
     (list 'emacs-lisp-mode       ?- t)
     (list 'lisp-interaction-mode ?- t)
+    (list 'doctex-mode           ?@ nil)
     (list 'tex-mode              ?@ nil)
     (list 'latex-mode            ?@ nil))
   "Alist configuring modes affected by `myelisp-namespace-helper-mode'.

@@ -71,6 +71,8 @@ via <kbd>M-x customize-variable</kbd>.
 CHANGELOG
 =========
 
+**2018-06-26** Added default entries for ``doctex-mode`` (i.e. *.dtx*-files).
+
 **2018-06-23.2** Made prefix character, and whether modes are affected
 by `myelisp-namespace-helper-global-mode` configurable via
 `M-x customize-variable myelisp-namespace-helper-affected-modes-alist`.
