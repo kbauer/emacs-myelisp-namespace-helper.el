@@ -71,6 +71,9 @@ via <kbd>M-x customize-variable</kbd>.
 CHANGELOG
 =========
 
+**2020-02-06** In order to support ``dash.el``, the namespace prefix will
+be removed, if doing so results in a known function or variable.
+
 **2018-06-26** Added default entries for ``doctex-mode`` (i.e. *.dtx*-files).
 
 **2018-06-23.2** Made prefix character, and whether modes are affected
