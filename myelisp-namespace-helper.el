@@ -33,6 +33,12 @@
 (require 'cl-macs)
 
 
+;;;; -- AUX
+
+
+;;;; -- MAIN
+
+
 (defvar-local myelisp-namespace-helper-prefix nil
   "When set as a file-local variable, overrides the default namespace prefix.
 Expected to be a symbol.")
@@ -105,14 +111,13 @@ If it hasn't been defined, signal error."
 
 
 (defmacro myelisp-namespace-helper-define-function-for-char (char)
+  (cl-assert char character)
   (let ((string (string char)))
    `(defun ,(myelisp-namespace-helper--function-for-char char t) ()
       (cond
         ((and (eq last-input-event ,char)
-              
               ;; Insert prefix, if looking at lone `-' character.
               (looking-back (rx symbol-start ,string) (1- (point)))
-              
               ;; If face indicates comment or string, only replace `-'
               ;; character if preceded by quote character indicating
               ;; that a symbol name is meant.
@@ -122,6 +127,22 @@ If it hasn't been defined, signal error."
          (unless (minibufferp)
            (with-temp-message ,(concat "`myelisp-namespace-helper-mode': Replacing `"string"' by prefix.")))
          (insert (myelisp-namespace-helper-get-buffer-namespace) ,string))
+
+        ;; Support for `dash.el'.
+        ((and (memq last-input-event '(?\ ?\n return))
+              (looking-back
+               (concat "\\_<\\(?3:\\(?2:" 
+                       (regexp-quote (myelisp-namespace-helper-get-buffer-namespace))
+                       "\\)\\(?1:.*?\\)\\)\\_>[[:blank:]]*\n?[[:blank:]]*")
+               (line-beginning-position -1))
+              (let ((symbol-sans-prefix (intern (match-string 1))))
+                (or (fboundp symbol-sans-prefix)
+                    (boundp symbol-sans-prefix))))
+         (with-temp-message
+             (concat "`myelisp-namespace-helper-mode': "
+                     "Replacing `"(match-string 3)"' by `"(match-string 1)"'."))
+         (save-excursion 
+           (replace-match "" nil nil nil 2)))
         
         ;; After number or whitespace keys, replace the prefix by a sole hyphen,
         ;; as it would otherwise interfere with typing `-1' or `(- 1 2)'.
@@ -145,7 +166,9 @@ If it hasn't been defined, signal error."
 
 
 (define-minor-mode myelisp-namespace-helper-mode 
-  "Use the `-' key to insert a namespace prefix in `emacs-lisp-mode'."
+  "Use the `-' key to insert a namespace prefix in `emacs-lisp-mode'.
+
+Set `myelisp-namespace-helper-prefix' to override default prefix."
   :lighter " Nsh"
 
   (when myelisp-namespace-helper-mode
